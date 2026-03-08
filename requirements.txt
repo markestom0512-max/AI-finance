@@ -2,6 +2,5 @@ anthropic>=0.40.0
 ccxt>=4.3.0
 pandas>=2.2.0
 numpy>=1.26.0
-pandas-ta>=0.3.14b
 python-dotenv>=1.0.0
 rich>=13.7.0
