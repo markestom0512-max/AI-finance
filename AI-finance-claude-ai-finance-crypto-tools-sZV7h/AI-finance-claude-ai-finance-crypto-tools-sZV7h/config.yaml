@@ -1,0 +1,63 @@
+# ═══════════════════════════════════════════════════════════════
+#  AI Finance — Scheduler Configuration
+#  Edit this file to customize your monitoring assets & schedule.
+# ═══════════════════════════════════════════════════════════════
+
+# ── Assets to monitor ──────────────────────────────────────────
+# Add or remove assets. Each entry runs on its own schedule.
+assets:
+  - symbol: BTC/USDT
+    timeframe: 1h       # Options: 1m, 5m, 15m, 1h, 4h, 1d
+    exchange: binance   # Options: binance, kraken, coinbase, bybit, okx
+    limit: 200          # Number of candles to analyze
+
+  # Uncomment to add more assets:
+  # - symbol: ETH/USDT
+  #   timeframe: 4h
+  #   exchange: binance
+  #   limit: 200
+
+  # - symbol: SOL/USDT
+  #   timeframe: 1h
+  #   exchange: bybit
+  #   limit: 300
+
+
+# ── Schedule ────────────────────────────────────────────────────
+# Define active time slots per group of days.
+# Days not listed (or with no slots) = OFF → no analysis.
+#
+# Format:
+#   from / to      : "HH:MM" (24h, local time, same day — no midnight crossing)
+#   interval_minutes: how often to run the analysis during this slot
+#
+# Tip: use small intervals (15-30 min) for "intense" sessions,
+#      larger intervals (120-240 min) for light monitoring.
+
+schedule:
+  # ── Weekdays ────────────────────────────────────────────────
+  - days: [monday, tuesday, wednesday, thursday, friday]
+    slots:
+      - from: "08:00"
+        to: "12:00"
+        interval_minutes: 30    # INTENSE — every 30 min (morning session)
+
+      - from: "12:00"
+        to: "17:00"
+        interval_minutes: 120   # LIGHT — every 2h (afternoon)
+
+      - from: "17:00"
+        to: "22:00"
+        interval_minutes: 45    # INTENSE — every 45 min (evening session)
+
+      # Night (22:00 → 08:00) = OFF (not listed)
+
+  # ── Saturday ────────────────────────────────────────────────
+  - days: [saturday]
+    slots:
+      - from: "10:00"
+        to: "14:00"
+        interval_minutes: 120   # LIGHT — every 2h
+
+  # ── Sunday ──────────────────────────────────────────────────
+  # Not listed → fully OFF
