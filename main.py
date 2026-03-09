@@ -15,6 +15,7 @@ import sys
 import os
 from datetime import datetime, timezone
 
+import anthropic
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
@@ -240,10 +241,6 @@ def interactive_mode():
 
 
 def main():
-    import anthropic as _anthropic
-    global anthropic
-    anthropic = _anthropic
-
     parser = argparse.ArgumentParser(
         description="AI-powered crypto market analysis tool",
         formatter_class=argparse.RawDescriptionHelpFormatter,
