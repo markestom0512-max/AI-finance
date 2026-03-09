@@ -169,7 +169,6 @@ def analyze_market(
         with client.messages.stream(
             model="claude-opus-4-6",
             max_tokens=4096,
-            thinking={"type": "adaptive"},
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}],
         ) as stream_ctx:
@@ -189,7 +188,6 @@ def analyze_market(
         response = client.messages.create(
             model="claude-opus-4-6",
             max_tokens=4096,
-            thinking={"type": "adaptive"},
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}],
         )
