@@ -26,6 +26,7 @@ from rich import box
 import market_data as md
 import technical_analysis as ta
 import ai_analyzer
+from notifier import TelegramNotifier
 
 load_dotenv()
 
@@ -167,13 +168,30 @@ def run_analysis(symbol: str, timeframe: str, exchange_id: str, limit: int):
     console.print()
 
     try:
-        _ = ai_analyzer.analyze_market(market, analysis, stream=True)
+        analysis_text = ai_analyzer.analyze_market(market, analysis, stream=True)
     except anthropic.AuthenticationError:
         console.print("[red]ANTHROPIC_API_KEY invalide. Vérifiez votre fichier .env.[/red]")
         sys.exit(1)
     except Exception as e:
         console.print(f"[red]Analyse IA échouée:[/red] {e}")
         sys.exit(1)
+
+    # Send to Telegram if configured
+    tg_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    tg_chat = os.getenv("TELEGRAM_CHAT_ID", "")
+    if tg_token and tg_chat:
+        notifier = TelegramNotifier(tg_token, tg_chat)
+        change = ticker["change_24h_pct"]
+        arrow = "📈" if change >= 0 else "📉"
+        header = (
+            f"{arrow} *{symbol}* — `${price:,.4f}`  ({change:+.2f}%)\n"
+            f"🕐 {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}  |  TF: {timeframe}\n"
+            f"{'─' * 32}\n\n"
+        )
+        notifier.send_long(header + analysis_text)
+        console.print("[green]Analyse envoyée sur Telegram.[/green]")
+    else:
+        console.print("[dim]Telegram non configuré (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID manquants dans .env).[/dim]")
 
     console.print("\n")
     console.print(Panel(
