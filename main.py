@@ -34,7 +34,7 @@ console = Console()
 BANNER = """
 ╔═══════════════════════════════════════════════╗
 ║        AI FINANCE — Market Analyzer           ║
-║   Powered by Claude Opus 4.6 + CCXT           ║
+║   Powered by Claude Haiku 4.5 + CCXT          ║
 ╚═══════════════════════════════════════════════╝
 """
 
@@ -54,95 +54,61 @@ def check_env():
         sys.exit(1)
 
 
-def print_indicators_table(ind: dict, trend: dict):
-    table = Table(title="Technical Indicators", box=box.ROUNDED, style="cyan")
-    table.add_column("Indicator", style="bold white")
-    table.add_column("Value", justify="right")
-    table.add_column("Signal", justify="center")
+def print_key_signals(ind: dict, trend: dict, ob: dict):
+    """Print a compact table with only the most important signals."""
+    table = Table(title="Indicateurs Clés", box=box.SIMPLE_HEAVY, style="cyan", show_header=True)
+    table.add_column("Indicateur", style="bold white", min_width=18)
+    table.add_column("Valeur", justify="right", min_width=14)
+    table.add_column("Signal", justify="center", min_width=12)
 
     # RSI
     rsi = ind["rsi_14"]
-    rsi_signal = "[red]Overbought[/red]" if rsi > 70 else "[green]Oversold[/green]" if rsi < 30 else "[yellow]Neutral[/yellow]"
-    table.add_row("RSI (14)", f"{rsi:.2f}", rsi_signal)
+    rsi_signal = "[red]Suracheté[/red]" if rsi > 70 else "[green]Survendu[/green]" if rsi < 30 else "[yellow]Neutre[/yellow]"
+    table.add_row("RSI (14)", f"{rsi:.1f}", rsi_signal)
 
     # MACD
-    macd_signal = "[green]Bullish[/green]" if ind["macd"] > ind["macd_signal"] else "[red]Bearish[/red]"
-    table.add_row("MACD", f"{ind['macd']:+.6f}", macd_signal)
-    table.add_row("MACD Signal", f"{ind['macd_signal']:+.6f}", "")
-    table.add_row("MACD Histogram", f"{ind['macd_histogram']:+.6f}", "[green]▲[/green]" if ind["macd_histogram"] > 0 else "[red]▼[/red]")
-
-    # Stochastic
-    stoch_signal = "[red]Overbought[/red]" if ind["stoch_k"] > 80 else "[green]Oversold[/green]" if ind["stoch_k"] < 20 else "[yellow]Neutral[/yellow]"
-    table.add_row("Stoch K/D", f"{ind['stoch_k']:.1f} / {ind['stoch_d']:.1f}", stoch_signal)
-
-    # BB
-    pct_b = ind["bb_pct_b"]
-    bb_signal = "[red]Near Upper[/red]" if pct_b > 0.8 else "[green]Near Lower[/green]" if pct_b < 0.2 else "[yellow]Mid-Band[/yellow]"
-    table.add_row("BB %B", f"{pct_b:.3f}", bb_signal)
-    table.add_row("BB Width", f"{ind['bb_bandwidth']:.4f}", "")
-
-    # EMAs
-    price = ind["price"]
-    table.add_row("EMA 9/21/50/200",
-                  f"{ind['ema_9']:,.2f} / {ind['ema_21']:,.2f} / {ind['ema_50']:,.2f} / {ind['ema_200']:,.2f}", "")
-
-    # VWAP
-    vwap_diff = (price - ind["vwap"]) / ind["vwap"] * 100
-    vwap_signal = "[green]Above[/green]" if vwap_diff > 0 else "[red]Below[/red]"
-    table.add_row("VWAP", f"{ind['vwap']:,.6f} ({vwap_diff:+.2f}%)", vwap_signal)
-
-    # ATR
-    atr_pct = ind["atr_14"] / price * 100
-    table.add_row("ATR (14)", f"{ind['atr_14']:,.6f} ({atr_pct:.2f}%)", "")
-
-    # Volume
-    vol_signal = "[green]High[/green]" if ind["volume_vs_avg"] > 1.5 else "[yellow]Normal[/yellow]" if ind["volume_vs_avg"] > 0.7 else "[red]Low[/red]"
-    table.add_row("Volume vs Avg", f"{ind['volume_vs_avg']:.2f}x", vol_signal)
-    table.add_row("OBV Trend", ind["obv_trend"].upper(), "[green]▲[/green]" if ind["obv_trend"] == "rising" else "[red]▼[/red]")
+    macd_signal_str = "[green]Haussier[/green]" if ind["macd_histogram"] > 0 else "[red]Baissier[/red]"
+    table.add_row("MACD Histo", f"{ind['macd_histogram']:+.5f}", macd_signal_str)
 
     # Trend
     trend_color = "green" if trend["direction"] == "uptrend" else "red" if trend["direction"] == "downtrend" else "yellow"
-    table.add_row("Trend", f"{trend['direction'].upper()} ({trend['strength']})", f"[{trend_color}]{trend['slope_10c_pct']:+.2f}%[/{trend_color}]")
+    trend_label = "Haussier" if trend["direction"] == "uptrend" else "Baissier" if trend["direction"] == "downtrend" else "Latéral"
+    table.add_row("Tendance", f"{trend_label} ({trend['strength']})", f"[{trend_color}]{trend['slope_10c_pct']:+.2f}%[/{trend_color}]")
+
+    # BB %B
+    pct_b = ind["bb_pct_b"]
+    bb_signal = "[red]Bande haute[/red]" if pct_b > 0.8 else "[green]Bande basse[/green]" if pct_b < 0.2 else "[yellow]Milieu[/yellow]"
+    table.add_row("BB %B", f"{pct_b:.3f}", bb_signal)
+
+    # VWAP
+    vwap_diff = (ind["price"] - ind["vwap"]) / ind["vwap"] * 100
+    vwap_signal = "[green]Au-dessus[/green]" if vwap_diff > 0 else "[red]En-dessous[/red]"
+    table.add_row("vs VWAP", f"{vwap_diff:+.2f}%", vwap_signal)
+
+    # Volume
+    vol_signal = "[green]Élevé[/green]" if ind["volume_vs_avg"] > 1.5 else "[yellow]Normal[/yellow]" if ind["volume_vs_avg"] > 0.7 else "[red]Faible[/red]"
+    table.add_row("Volume vs Moy", f"{ind['volume_vs_avg']:.2f}x", vol_signal)
+
+    # Order book pressure
+    imb = ob["imbalance"]
+    ob_signal = "[green]Acheteurs[/green]" if imb > 0.05 else "[red]Vendeurs[/red]" if imb < -0.05 else "[yellow]Équilibré[/yellow]"
+    table.add_row("Carnet ordres", f"{imb:+.3f}", ob_signal)
 
     console.print(table)
 
 
-def print_levels_table(sr: dict, vol_profile: dict, price: float):
-    table = Table(title="Key Price Levels", box=box.ROUNDED, style="magenta")
-    table.add_column("Type", style="bold white")
-    table.add_column("Price", justify="right")
-    table.add_column("Distance", justify="right")
+def print_levels(sr: dict, vol_profile: dict, price: float):
+    """Print the 2 most relevant support/resistance levels + POC."""
+    lines = []
+    lines.append(f"  POC (Volume)  ${vol_profile['point_of_control']:,.4f}  ({(vol_profile['point_of_control']-price)/price*100:+.2f}%)")
 
-    table.add_row("POC (Volume)", f"${vol_profile['point_of_control']:,.6f}",
-                  f"{(vol_profile['point_of_control'] - price) / price * 100:+.2f}%")
+    for r in sr["resistance_levels"][:2]:
+        lines.append(f"  [red]Résistance[/red]    ${r:,.4f}  ({(r-price)/price*100:+.2f}%)")
 
-    for r in sr["resistance_levels"]:
-        dist = (r - price) / price * 100
-        table.add_row("[red]Resistance[/red]", f"${r:,.6f}", f"[red]{dist:+.2f}%[/red]")
+    for s in sr["support_levels"][:2]:
+        lines.append(f"  [green]Support[/green]       ${s:,.4f}  ({(s-price)/price*100:+.2f}%)")
 
-    for s in sr["support_levels"]:
-        dist = (s - price) / price * 100
-        table.add_row("[green]Support[/green]", f"${s:,.6f}", f"[green]{dist:+.2f}%[/green]")
-
-    console.print(table)
-
-
-def print_order_book(ob: dict):
-    imbalance = ob["imbalance"]
-    bar_width = 30
-    buy_ratio = (imbalance + 1) / 2
-    buy_blocks = int(buy_ratio * bar_width)
-    sell_blocks = bar_width - buy_blocks
-    bar = f"[green]{'█' * buy_blocks}[/green][red]{'█' * sell_blocks}[/red]"
-
-    direction = "[green]BUY PRESSURE[/green]" if imbalance > 0.05 else "[red]SELL PRESSURE[/red]" if imbalance < -0.05 else "[yellow]BALANCED[/yellow]"
-
-    console.print(Panel(
-        f"Spread: {ob['spread_pct']:.4f}%  |  Imbalance: {imbalance:+.4f}  |  {direction}\n"
-        f"Buy Vol: {ob['bid_volume']:.4f}  {bar}  Sell Vol: {ob['ask_volume']:.4f}",
-        title="Order Book",
-        border_style="blue",
-    ))
+    console.print(Panel("\n".join(lines), title="Niveaux Clés", border_style="magenta"))
 
 
 def run_analysis(symbol: str, timeframe: str, exchange_id: str, limit: int):
@@ -151,11 +117,11 @@ def run_analysis(symbol: str, timeframe: str, exchange_id: str, limit: int):
     check_env()
 
     # Step 1 — Fetch market data
-    with console.status(f"[bold cyan]Fetching {symbol} data from {exchange_id}...[/bold cyan]"):
+    with console.status(f"[bold cyan]Récupération {symbol} depuis {exchange_id}...[/bold cyan]"):
         try:
             market = md.get_market_summary(symbol, timeframe, limit, exchange_id)
         except Exception as e:
-            console.print(f"[red]Failed to fetch market data:[/red] {e}")
+            console.print(f"[red]Échec récupération données:[/red] {e}")
             sys.exit(1)
 
     ticker = market["ticker"]
@@ -164,40 +130,38 @@ def run_analysis(symbol: str, timeframe: str, exchange_id: str, limit: int):
     console.print(Panel(
         f"[bold white]{symbol}[/bold white]  |  "
         f"[bold {'green' if ticker['change_24h_pct'] >= 0 else 'red'}]"
-        f"${price:,.6f}  ({ticker['change_24h_pct']:+.2f}%)[/bold {'green' if ticker['change_24h_pct'] >= 0 else 'red'}]\n"
-        f"Timeframe: [cyan]{timeframe}[/cyan]  |  Exchange: [cyan]{exchange_id.capitalize()}[/cyan]  |  "
-        f"Candles: [cyan]{market['candles_fetched']}[/cyan]",
-        title="Market Overview",
+        f"${price:,.4f}  ({ticker['change_24h_pct']:+.2f}%)[/bold {'green' if ticker['change_24h_pct'] >= 0 else 'red'}]\n"
+        f"Timeframe: [cyan]{timeframe}[/cyan]  |  Exchange: [cyan]{exchange_id.capitalize()}[/cyan]",
+        title="Aperçu Marché",
         border_style="cyan",
     ))
 
     # Step 2 — Technical analysis
-    with console.status("[bold cyan]Computing technical indicators...[/bold cyan]"):
+    with console.status("[bold cyan]Calcul des indicateurs...[/bold cyan]"):
         try:
             analysis = ta.full_analysis(market["ohlcv"])
         except Exception as e:
-            console.print(f"[red]Technical analysis failed:[/red] {e}")
+            console.print(f"[red]Analyse technique échouée:[/red] {e}")
             sys.exit(1)
 
-    # Print indicators
-    print_indicators_table(analysis["latest_indicators"], analysis["trend"])
-    print_levels_table(analysis["support_resistance"], analysis["volume_profile"], price)
-    print_order_book(market["order_book"])
+    print_key_signals(analysis["latest_indicators"], analysis["trend"], market["order_book"])
+    print_levels(analysis["support_resistance"], analysis["volume_profile"], price)
 
-    # Print patterns
-    if analysis["candlestick_patterns"]:
-        console.print("\n[bold magenta]Candlestick Patterns Detected:[/bold magenta]")
-        for p in analysis["candlestick_patterns"][-5:]:
-            signal_color = "green" if "bullish" in p["signal"] or p["signal"] == "strong_bullish" else \
-                           "red" if "bearish" in p["signal"] or p["signal"] == "strong_bearish" else "yellow"
-            console.print(f"  • [{signal_color}]{p['pattern']}[/{signal_color}] — {p['signal'].replace('_', ' ').title()}")
+    # Patterns (only if notable)
+    notable_patterns = [p for p in analysis["candlestick_patterns"][-3:] if p["signal"] != "neutral"]
+    if notable_patterns:
+        pat_lines = []
+        for p in notable_patterns:
+            color = "green" if "bullish" in p["signal"] else "red" if "bearish" in p["signal"] else "yellow"
+            pat_lines.append(f"  [{color}]{p['pattern']}[/{color}] — {p['signal'].replace('_', ' ').title()}")
+        console.print(Panel("\n".join(pat_lines), title="Patterns Chandelier", border_style="yellow"))
 
     # Step 3 — AI Analysis
     console.print("\n")
     console.print(Panel(
-        "[bold]Claude Opus 4.6 is analyzing the market data with adaptive thinking...[/bold]\n"
-        "[dim]This may take 15-30 seconds for deep analysis.[/dim]",
-        title="AI Analysis",
+        "[bold]Analyse IA en cours (Haiku 4.5)...[/bold]\n"
+        "[dim]Génération des scénarios et conseils...[/dim]",
+        title="Analyse IA",
         border_style="yellow",
     ))
     console.print()
@@ -205,35 +169,35 @@ def run_analysis(symbol: str, timeframe: str, exchange_id: str, limit: int):
     try:
         _ = ai_analyzer.analyze_market(market, analysis, stream=True)
     except anthropic.AuthenticationError:
-        console.print("[red]Invalid ANTHROPIC_API_KEY. Check your .env file.[/red]")
+        console.print("[red]ANTHROPIC_API_KEY invalide. Vérifiez votre fichier .env.[/red]")
         sys.exit(1)
     except Exception as e:
-        console.print(f"[red]AI analysis failed:[/red] {e}")
+        console.print(f"[red]Analyse IA échouée:[/red] {e}")
         sys.exit(1)
 
     console.print("\n")
     console.print(Panel(
-        f"Analysis completed at {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
-        "[dim]This is not financial advice. Always do your own research.[/dim]",
+        f"Analyse terminée à {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
+        "[dim]Ceci n'est pas un conseil financier. Faites toujours vos propres recherches.[/dim]",
         border_style="dim",
     ))
 
 
 def interactive_mode():
     console.print(BANNER, style="bold cyan")
-    console.print("[bold]Interactive Mode[/bold] — Configure your analysis\n")
+    console.print("[bold]Mode Interactif[/bold] — Configurez votre analyse\n")
 
-    symbol = console.input(f"[cyan]Symbol[/cyan] (default: {DEFAULT_SYMBOL}): ").strip().upper() or DEFAULT_SYMBOL
+    symbol = console.input(f"[cyan]Symbole[/cyan] (défaut: {DEFAULT_SYMBOL}): ").strip().upper() or DEFAULT_SYMBOL
     if "/" not in symbol:
         symbol = symbol + "/USDT"
 
     console.print(f"\nTimeframes: 1m, 5m, 15m, 1h, 4h, 1d, 1w")
-    timeframe = console.input(f"[cyan]Timeframe[/cyan] (default: {DEFAULT_TIMEFRAME}): ").strip() or DEFAULT_TIMEFRAME
+    timeframe = console.input(f"[cyan]Timeframe[/cyan] (défaut: {DEFAULT_TIMEFRAME}): ").strip() or DEFAULT_TIMEFRAME
 
     console.print(f"\nExchanges: {', '.join(md.SUPPORTED_EXCHANGES)}")
-    exchange_id = console.input(f"[cyan]Exchange[/cyan] (default: {DEFAULT_EXCHANGE}): ").strip().lower() or DEFAULT_EXCHANGE
+    exchange_id = console.input(f"[cyan]Exchange[/cyan] (défaut: {DEFAULT_EXCHANGE}): ").strip().lower() or DEFAULT_EXCHANGE
 
-    limit = console.input(f"[cyan]Candles to fetch[/cyan] (default: {DEFAULT_LIMIT}): ").strip()
+    limit = console.input(f"[cyan]Bougies à récupérer[/cyan] (défaut: {DEFAULT_LIMIT}): ").strip()
     limit = int(limit) if limit.isdigit() else DEFAULT_LIMIT
 
     console.print()
